@@ -777,7 +777,8 @@ int fseek(FILE *stream, long offset, int whence) {
     if STREAM_NOT_MANAGED(stream) {
         return libc_fseek(stream, offset, whence);
     }
-    NOT_IMPLEMENTED("fseek")
+    // NOT_IMPLEMENTED("fseek")
+    return Fseek(fileno(stream), offset, whence);
 }
 
 int fseeko(FILE *stream, off_t offset, int whence) {

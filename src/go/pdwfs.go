@@ -436,6 +436,17 @@ func Lseek(fd int, offset int64, whence int) int64 {
 	return n
 }
 
+//Fseek implements fseek libc call
+//export Fseek
+func Fseek(fd int, offset int64, whence int) int {
+	var off int64 = Lseek(fd, offset, whence)
+	if off != -1 {
+		return 0
+	}
+
+	return -1
+}
+
 //Unlink implements unlink libc call
 //export Unlink
 func Unlink(filename string) int {
