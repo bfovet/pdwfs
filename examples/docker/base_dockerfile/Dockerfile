@@ -1,4 +1,4 @@
-FROM centos:latest 
+FROM redhat:ubi8 
 
 RUN yum -y update && yum -y install \
 	wget \
