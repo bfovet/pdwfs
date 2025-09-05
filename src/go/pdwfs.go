@@ -73,7 +73,7 @@ type PdwFS struct {
 	lock      sync.RWMutex
 }
 
-//NewPdwFS returns a new PdwFS instance with newly created redisfs mount points based on configuration info
+// NewPdwFS returns a new PdwFS instance with newly created redisfs mount points based on configuration info
 func NewPdwFS(conf *config.Pdwfs) *PdwFS {
 	if len(conf.Mounts) == 0 {
 		panic("No mount path specified...")
@@ -149,6 +149,7 @@ var pdwfs *PdwFS
 // The mountBuf argument is used to communicate the list of mount points back to the C layer.
 // The C layer uses the mount points information for its own triage of filename (pdwfs I/O calls vs libc I/O calls).
 // This is necessary as the configuration mechanism is in the Go layer.
+//
 //export InitPdwfs
 func InitPdwfs(mountBuf []byte) {
 	conf := config.New()
@@ -167,6 +168,7 @@ func InitPdwfs(mountBuf []byte) {
 }
 
 // FinalizePdwfs is called once when pdwfs.so library is unloaded (gcc destructor attribute)
+//
 //export FinalizePdwfs
 func FinalizePdwfs() {
 	pdwfs.finalize()
@@ -174,7 +176,8 @@ func FinalizePdwfs() {
 
 var errno C.int
 
-//GetErrno is used by C functions to retrieve the error number set by Go function
+// GetErrno is used by C functions to retrieve the error number set by Go function
+//
 //export GetErrno
 func GetErrno() C.int {
 	return errno
@@ -185,7 +188,8 @@ func setErrno(err C.int) {
 	errno = err
 }
 
-//Open implements open libc call
+// Open implements open libc call
+//
 //export Open
 func Open(filename string, flags, mode, fd int) int {
 	pdwfs.lock.Lock()
@@ -210,7 +214,8 @@ func Open(filename string, flags, mode, fd int) int {
 	return fd
 }
 
-//Fopen implements fopen libc call
+// Fopen implements fopen libc call
+//
 //export Fopen
 func Fopen(filename string, mode string, fd int) int {
 	pdwfs.lock.Lock()
@@ -223,7 +228,10 @@ func Fopen(filename string, mode string, fd int) int {
 	case "r":
 		flags = os.O_RDONLY
 	case "w":
+	case "wb":
 		flags = os.O_WRONLY | os.O_CREATE | os.O_TRUNC
+	case "w+":
+		flags = os.O_RDWR | os.O_CREATE | os.O_TRUNC
 	default:
 		panic(fmt.Sprintf("fopen mode '%s' unknown or not implemented yet", mode))
 	}
@@ -244,7 +252,8 @@ func Fopen(filename string, mode string, fd int) int {
 	return fd
 }
 
-//Close implements close libc call
+// Close implements close libc call
+//
 //export Close
 func Close(fd int) int {
 	pdwfs.lock.Lock()
@@ -257,7 +266,8 @@ func Close(fd int) int {
 	return 0
 }
 
-//Write implements write libc call
+// Write implements write libc call
+//
 //export Write
 func Write(fd int, buf []byte) int {
 	pdwfs.lock.Lock()
@@ -279,7 +289,8 @@ func Write(fd int, buf []byte) int {
 	return n
 }
 
-//Pwrite implements pwrite libc call
+// Pwrite implements pwrite libc call
+//
 //export Pwrite
 func Pwrite(fd int, buf []byte, off int64) int {
 	pdwfs.lock.Lock()
@@ -300,7 +311,8 @@ func Pwrite(fd int, buf []byte, off int64) int {
 	return n
 }
 
-//Writev implements writev libc call
+// Writev implements writev libc call
+//
 //export Writev
 func Writev(fd int, iov [][]byte) int {
 	pdwfs.lock.Lock()
@@ -313,7 +325,8 @@ func Writev(fd int, iov [][]byte) int {
 	return n
 }
 
-//Pwritev implements pwritev libc call
+// Pwritev implements pwritev libc call
+//
 //export Pwritev
 func Pwritev(fd int, iov [][]byte, off int64) int {
 	pdwfs.lock.Lock()
@@ -334,7 +347,8 @@ func Pwritev(fd int, iov [][]byte, off int64) int {
 	return n
 }
 
-//Read implements read libc call
+// Read implements read libc call
+//
 //export Read
 func Read(fd int, buf []byte) int {
 	pdwfs.lock.Lock()
@@ -343,7 +357,7 @@ func Read(fd int, buf []byte) int {
 	check(err)
 
 	n, err := (*file).Read(buf)
-	if err != nil && err != io.EOF{
+	if err != nil && err != io.EOF {
 		if err == redisfs.ErrWriteOnly {
 			setErrno(C.EBADF)
 		} else {
@@ -354,7 +368,8 @@ func Read(fd int, buf []byte) int {
 	return n
 }
 
-//Pread implements pread libc call
+// Pread implements pread libc call
+//
 //export Pread
 func Pread(fd int, buf []byte, off int64) int {
 	pdwfs.lock.Lock()
@@ -375,7 +390,8 @@ func Pread(fd int, buf []byte, off int64) int {
 	return n
 }
 
-//Readv implements readv libc call
+// Readv implements readv libc call
+//
 //export Readv
 func Readv(fd int, iov [][]byte) int {
 	pdwfs.lock.Lock()
@@ -390,7 +406,8 @@ func Readv(fd int, iov [][]byte) int {
 	return n
 }
 
-//Preadv implements preadv libc call
+// Preadv implements preadv libc call
+//
 //export Preadv
 func Preadv(fd int, iov [][]byte, off int64) int {
 	pdwfs.lock.Lock()
@@ -411,7 +428,8 @@ func Preadv(fd int, iov [][]byte, off int64) int {
 	return n
 }
 
-//Lseek implements lseek libc call
+// Lseek implements lseek libc call
+//
 //export Lseek
 func Lseek(fd int, offset int64, whence int) int64 {
 	pdwfs.lock.Lock()
@@ -436,7 +454,8 @@ func Lseek(fd int, offset int64, whence int) int64 {
 	return n
 }
 
-//Fseek implements fseek libc call
+// Fseek implements fseek libc call
+//
 //export Fseek
 func Fseek(fd int, offset int64, whence int) int {
 	var off int64 = Lseek(fd, offset, whence)
@@ -447,7 +466,8 @@ func Fseek(fd int, offset int64, whence int) int {
 	return -1
 }
 
-//Unlink implements unlink libc call
+// Unlink implements unlink libc call
+//
 //export Unlink
 func Unlink(filename string) int {
 	pdwfs.lock.Lock()
@@ -467,7 +487,8 @@ func Unlink(filename string) int {
 	return 0
 }
 
-//Mkdir implements mkdir libc call
+// Mkdir implements mkdir libc call
+//
 //export Mkdir
 func Mkdir(dirname string, mode int) int {
 	pdwfs.lock.Lock()
@@ -489,7 +510,8 @@ func Mkdir(dirname string, mode int) int {
 	return 0
 }
 
-//Rmdir implements rmdir libc call
+// Rmdir implements rmdir libc call
+//
 //export Rmdir
 func Rmdir(dirname string) int {
 	pdwfs.lock.Lock()
@@ -511,7 +533,8 @@ func Rmdir(dirname string) int {
 	return 0
 }
 
-//Access implements access libc call
+// Access implements access libc call
+//
 //export Access
 func Access(filename string, mode int) int {
 	pdwfs.lock.Lock()
@@ -537,6 +560,7 @@ func Access(filename string, mode int) int {
 }
 
 // Ftruncate implements ftruncate libc call
+//
 //export Ftruncate
 func Ftruncate(fd int, length int64) int {
 	pdwfs.lock.Lock()
@@ -574,7 +598,8 @@ func stat(filename string, stats *C.struct_stat) int {
 	return 0
 }
 
-//Stat implements part of __xstat libc call
+// Stat implements part of __xstat libc call
+//
 //export Stat
 func Stat(filename string, stats *C.struct_stat) int {
 	pdwfs.lock.Lock()
@@ -607,7 +632,8 @@ func stat64(filename string, stats *C.struct_stat64) int {
 	return 0
 }
 
-//Stat64 implements part of __stat64 libc call
+// Stat64 implements part of __stat64 libc call
+//
 //export Stat64
 func Stat64(filename string, stats *C.struct_stat64) int {
 	pdwfs.lock.Lock()
@@ -615,7 +641,8 @@ func Stat64(filename string, stats *C.struct_stat64) int {
 	return stat64(filename, stats)
 }
 
-//Fstat implements part of __fxstat libc call, cf. Stat
+// Fstat implements part of __fxstat libc call, cf. Stat
+//
 //export Fstat
 func Fstat(fd int, stats *C.struct_stat) int {
 	pdwfs.lock.Lock()
@@ -625,7 +652,8 @@ func Fstat(fd int, stats *C.struct_stat) int {
 	return stat((*file).Name(), stats)
 }
 
-//Fstat64 implements part of __fxstat64 libc call, cf. Stat
+// Fstat64 implements part of __fxstat64 libc call, cf. Stat
+//
 //export Fstat64
 func Fstat64(fd int, stats *C.struct_stat64) int {
 	pdwfs.lock.Lock()
@@ -635,13 +663,15 @@ func Fstat64(fd int, stats *C.struct_stat64) int {
 	return stat64((*file).Name(), stats)
 }
 
-//Lstat implements part of __lxstat libc call (symlink are not supported so it's an alias to Stat)
+// Lstat implements part of __lxstat libc call (symlink are not supported so it's an alias to Stat)
+//
 //export Lstat
 func Lstat(filename string, stats *C.struct_stat) int {
 	return Stat(filename, stats)
 }
 
-//Lstat64 implements part of __lxstat64 libc call (symlink are not supported so it's an alias to Stat)
+// Lstat64 implements part of __lxstat64 libc call (symlink are not supported so it's an alias to Stat)
+//
 //export Lstat64
 func Lstat64(filename string, stats *C.struct_stat64) int {
 	return Stat64(filename, stats)
@@ -659,7 +689,8 @@ func statfs() syscall.Statfs_t {
 	}
 }
 
-//Statfs implements part of statfs libc call
+// Statfs implements part of statfs libc call
+//
 //export Statfs
 func Statfs(filename string, fsstats *C.struct_statfs) int {
 	//FIXME: this information should be returned by the redisfs instance managing 'filename'
@@ -674,7 +705,8 @@ func Statfs(filename string, fsstats *C.struct_statfs) int {
 	return 0
 }
 
-//Statfs64 implements part of statfs64 libc call
+// Statfs64 implements part of statfs64 libc call
+//
 //export Statfs64
 func Statfs64(filename string, fsstats *C.struct_statfs64) int {
 	//FIXME: this information should be returned by the redisfs instance managing 'filename'
@@ -689,7 +721,8 @@ func Statfs64(filename string, fsstats *C.struct_statfs64) int {
 	return 0
 }
 
-//Statvfs implements part of statvfs libc call
+// Statvfs implements part of statvfs libc call
+//
 //export Statvfs
 func Statvfs(filename string, vfsstats *C.struct_statvfs) int {
 	//FIXME: this information should be returned by the redisfs instance managing 'filename'
@@ -699,7 +732,8 @@ func Statvfs(filename string, vfsstats *C.struct_statvfs) int {
 	return 0
 }
 
-//Statvfs64 implements part of statvfs libc call
+// Statvfs64 implements part of statvfs libc call
+//
 //export Statvfs64
 func Statvfs64(filename string, vfsstats *C.struct_statvfs64) int {
 	//FIXME: this information should be returned by the redisfs instance managing 'filename'
@@ -709,14 +743,16 @@ func Statvfs64(filename string, vfsstats *C.struct_statvfs64) int {
 	return 0
 }
 
-//Fadvise ...
+// Fadvise ...
+//
 //export Fadvise
 func Fadvise(fd int, offset, len int64, advice int) int {
 	//FIXME: currently no-op, could be leveraged in the future for caching/prefetching
 	return 0
 }
 
-//Fflush ...
+// Fflush ...
+//
 //export Fflush
 func Fflush(f *C.FILE) int {
 	//currently no-op
