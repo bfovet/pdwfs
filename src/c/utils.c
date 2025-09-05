@@ -42,8 +42,7 @@ char* abspath (const char *name) {
 	        free(rpath);
 	        return NULL;
 	    }
-        // dest = memchr(rpath, '\0', (size_t)-1);
-        dest = memchr(rpath, '\0', PATH_MAX);
+        dest = rpath + strlen(rpath);
     }
     else {
         rpath[0] = '/';
